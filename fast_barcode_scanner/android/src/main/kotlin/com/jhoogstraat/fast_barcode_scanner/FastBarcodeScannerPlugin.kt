@@ -17,13 +17,39 @@ class FastBarcodeScannerPlugin: FlutterPlugin, MethodCallHandler, ActivityAware 
   private lateinit var channel : MethodChannel
   private lateinit var reader: BarcodeReader
 
-  override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
+//  override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
+//    channel = MethodChannel(flutterPluginBinding.binaryMessenger, "com.jhoogstraat/fast_barcode_scanner")
+//
+//    reader = BarcodeReader(flutterPluginBinding.textureRegistry.createSurfaceTexture()) { barcodes ->
+//      barcodes.firstOrNull()?.also { barcode -> channel.invokeMethod("read", listOf(barcodeStringMap[barcode.format], barcode.rawValue)) }
+//    }
+//  }
+override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
+
+    // 🚫 FIX: DO NOT run in background isolate (no Activity → no textures allowed)
+    val context = flutterPluginBinding.applicationContext
+    if (context !is Activity) {
+        // Skip initialization entirely
+        return
+    }
+
+    // NORMAL INITIALIZATION (foreground engine only)
     channel = MethodChannel(flutterPluginBinding.binaryMessenger, "com.jhoogstraat/fast_barcode_scanner")
 
-    reader = BarcodeReader(flutterPluginBinding.textureRegistry.createSurfaceTexture()) { barcodes ->
-      barcodes.firstOrNull()?.also { barcode -> channel.invokeMethod("read", listOf(barcodeStringMap[barcode.format], barcode.rawValue)) }
+    reader = BarcodeReader(
+        flutterPluginBinding.textureRegistry.createSurfaceTexture()
+    ) { barcodes ->
+        barcodes.firstOrNull()?.also { barcode ->
+            channel.invokeMethod(
+                "read",
+                listOf(
+                    barcodeStringMap[barcode.format],
+                    barcode.rawValue
+                )
+            )
+        }
     }
-  }
+}
 
   override fun onDetachedFromEngine(@NonNull binding: FlutterPlugin.FlutterPluginBinding) {
 
